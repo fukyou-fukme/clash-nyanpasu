@@ -47,11 +47,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install MSVC Build Tools
-        run: |
-          choco install visualstudio2019buildtools -y
-          choco install visualstudio2019-workload-vctools -y
-
       - name: Install Rust nightly
         run: |
           rustup install nightly
