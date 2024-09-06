@@ -70,24 +70,17 @@ jobs:
         with:
           run_install: false
 
+      - name: Install mingw-w64
+        run: sudo apt-get install -y mingw-w64
+
       - name: Install clang and lld
         run: |
           sudo apt-get install clang lld
 
-      - name: Install xwin and download Windows SDK and MSVC tools
+      - name: Install xwin and download Windows SDK
         run: |
           cargo install xwin
           xwin --accept-license splat --output winsdk
-          xwin --accept-license tools --output msvc
-
-      - name: Configure environment for MSVC tools
-        run: |
-          echo "Setting up MSVC tools..."
-          export PATH=$PWD/msvc/bin:$PATH
-          export LIB=$PWD/msvc/lib:$LIB
-          export INCLUDE=$PWD/msvc/include:$INCLUDE
-
-          '
 
       - name: Create .cargo directory
         run: mkdir -p .cargo
