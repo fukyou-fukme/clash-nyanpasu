@@ -1,0 +1,147 @@
+name: "[Single] Build Windows NSIS for win7 2"
+
+on:
+  workflow_dispatch:
+    inputs:
+      portable:
+        description: "Build Portable pkg"
+        required: true
+        type: boolean
+        default: false
+
+      nightly:
+        description: "Nightly prepare"
+        required: true
+        type: boolean
+        default: false
+
+      tag:
+        description: "Release Tag"
+        required: true
+        type: string
+
+  workflow_call:
+    inputs:
+      portable:
+        description: "Build Portable pkg"
+        required: true
+        type: boolean
+        default: false
+
+      nightly:
+        description: "Nightly prepare"
+        required: true
+        type: boolean
+        default: false
+
+      tag:
+        description: "Release Tag"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install MSVC Build Tools
+        run: |
+          choco install visualstudio2019buildtools -y
+          choco install visualstudio2019-workload-vctools -y
+
+      - name: Install Rust nightly
+        run: |
+          rustup install nightly
+          rustup default nightly
+          rustup component add rust-src --toolchain nightly-x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./backend/"
+          prefix-key: "rust-stable"
+          key: windows-latest
+          shared-key: "release"
+
+      - name: Install Node latest
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Install clang and lld
+        run: |
+          sudo apt-get install clang lld
+
+      - name: Install xwin
+        run: cargo install xwin
+
+      - name: Download Windows SDK using xwin
+        run: xwin splat --output winsdk
+
+      - name: Setup custom scripts for clang-cl and lld-link
+        run: |
+          echo '#!/usr/bin/env bash' > xwin-clang-cl
+          echo 'set -e' >> xwin-clang-cl
+          echo 'XWIN=$PWD/winsdk' >> xwin-clang-cl
+          echo 'clang-cl /imsvc "$XWIN/crt/include" /imsvc "$XWIN/sdk/include/ucrt" /imsvc "$XWIN/sdk/include/um" /imsvc "$XWIN/sdk/include/shared" --target="x86_64-pc-windows-msvc" "$@"' >> xwin-clang-cl
+          chmod +x xwin-clang-cl
+
+          echo '#!/usr/bin/env bash' > xwin-lld-link
+          echo 'set -e' >> xwin-lld-link
+          echo 'XWIN=$PWD/winsdk' >> xwin-lld-link
+          echo 'lld-link "$@" /libpath:$XWIN/crt/lib/x86_64 /libpath:$XWIN/sdk/lib/um/x86_64 /libpath:$XWIN/sdk/lib/ucrt/x86_64' >> xwin-lld-link
+          chmod +x xwin-lld-link
+
+      - name: Configure cargo for cross-compilation
+        run: |
+          echo '[target.x86_64-win7-windows-msvc]' >> .cargo/config.toml
+          echo 'linker = "./xwin-lld-link"' >> .cargo/config.toml
+          echo 'cc = "./xwin-clang-cl"' >> .cargo/config.toml
+
+
+      - name: Pnpm install deps and download resources
+        run: |
+          pnpm i
+          pnpm check
+
+      - name: Prepare (Windows NSIS and Portable)
+        run: ${{ inputs.nightly == true && 'pnpm prepare:nightly --nsis' || 'pnpm prepare:release --nsis' }}
+
+      - name: Build UI
+        run: |
+          pnpm -F ui build
+
+      - name: Tauri build
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          NIGHTLY: ${{ inputs.nightly == true  && 'true' || 'false' }}
+        with:
+          tagName: ${{ inputs.tag }}
+          releaseName: "Clash Nyanpasu Dev"
+          releaseBody: "More new features are now supported."
+          releaseDraft: false
+          prerelease: true
+          tauriScript: pnpm tauri
+          args: ${{ inputs.nightly == true && '-- --target x86_64-win7-windows-msvc -Zbuild-std' }}
+
+      - name: Portable Bundle
+        if: ${{ inputs.portable == true }}
+        run: |
+          pnpm portable
+        env:
+          TAG_NAME: ${{ inputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          NIGHTLY: ${{ inputs.nightly == true  && 'true' || 'false' }}
+          VITE_WIN_PORTABLE: 1
