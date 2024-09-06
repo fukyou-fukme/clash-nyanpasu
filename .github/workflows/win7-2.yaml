@@ -89,9 +89,6 @@ jobs:
           interact
           '
 
-      - name: Download Windows SDK using xwin
-        run: yes | xwin splat --output winsdk
-
       - name: Create .cargo directory
         run: mkdir -p .cargo
 
