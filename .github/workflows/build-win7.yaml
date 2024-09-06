@@ -47,14 +47,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check for Windows SDK
+      - name: Install MSVC Build Tools
         run: |
-          if (!(Test-Path "C:\Program Files (x86)\Windows Kits\10\Lib")) {
-            Write-Error "Windows SDK is not installed!"
-            exit 1
-          } else {
-            Write-Output "Windows SDK is installed."
-          }
+          choco install visualstudio2019buildtools -y
+          choco install visualstudio2019-workload-vctools -y
 
       - name: Install Rust nightly
         run: |
