@@ -49,8 +49,8 @@ jobs:
 
       - name: Install Rust stable
         run: |
-          rustup install stable --profile minimal --no-self-update
-          rustup default stable
+          rustup install nightly
+          rustup default nightly
           rustup component add rust-src --toolchain nightly-x86_64-pc-windows-msvc
 
       - uses: Swatinem/rust-cache@v2
