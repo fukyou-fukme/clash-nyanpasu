@@ -47,6 +47,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Clean environment to avoid tool conflicts
+        run: |
+          rm -f /home/runner/.cargo/bin/rust-analyzer
+          rm -f /home/runner/.cargo/bin/rustfmt
+          rm -f /home/runner/.cargo/bin/cargo-fmt
+
       - name: Install Rust nightly
         run: |
           rustup install nightly
@@ -69,9 +75,6 @@ jobs:
         name: Install pnpm
         with:
           run_install: false
-
-      - name: Install mingw-w64
-        run: sudo apt-get install -y mingw-w64
 
       - name: Install clang and lld
         run: |
@@ -98,15 +101,13 @@ jobs:
           echo 'XWIN=$PWD/winsdk' >> xwin-lld-link
           echo 'lld-link "$@" /libpath:$XWIN/crt/lib/x86_64 /libpath:$XWIN/sdk/lib/um/x86_64 /libpath:$XWIN/sdk/lib/ucrt/x86_64' >> xwin-lld-link
           chmod +x xwin-lld-link
-          
+
       - name: Configure cargo for cross-compilation
         run: |
           mkdir -p .cargo
           echo '[target.x86_64-win7-windows-msvc]' >> .cargo/config.toml
           echo 'linker = "./xwin-lld-link"' >> .cargo/config.toml
           echo 'cc = { path = "./xwin-clang-cl" }' >> .cargo/config.toml
-
-
 
       - name: Pnpm install deps and download resources
         run: |
