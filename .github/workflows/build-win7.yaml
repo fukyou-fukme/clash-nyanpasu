@@ -49,7 +49,7 @@ jobs:
 
       - name: Install Windows SDK
         run: |
-          choco install windows-sdk-7.1 --confirm
+          choco install windows-sdk --confirm
 
       - name: Install Rust nightly
         run: |
