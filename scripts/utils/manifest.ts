@@ -76,7 +76,7 @@ export const resolveClashRs = async (): LatestVersionResolver => {
 
   const archMapping: ArchMapping = {
     // [SupportedArch.WindowsX86]: "mihomo-windows-386-alpha-{}.zip",
-    [SupportedArch.WindowsX86_64]: "clash-x86_64-pc-windows-msvc.exe",
+    [SupportedArch.WindowsX86_64]: "clash-x86_64-win7-windows-msvc.exe",
     // [SupportedArch.WindowsAarch64]: "mihomo-windows-arm64-alpha-{}.zip",
     [SupportedArch.LinuxAarch64]: "clash-aarch64-unknown-linux-gnu-static-crt",
     [SupportedArch.LinuxAmd64]: "clash-x86_64-unknown-linux-gnu-static-crt",
