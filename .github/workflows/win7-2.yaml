@@ -105,12 +105,14 @@ jobs:
           echo 'XWIN=$PWD/winsdk' >> xwin-lld-link
           echo 'lld-link "$@" /libpath:$XWIN/crt/lib/x86_64 /libpath:$XWIN/sdk/lib/um/x86_64 /libpath:$XWIN/sdk/lib/ucrt/x86_64' >> xwin-lld-link
           chmod +x xwin-lld-link
-
+          
       - name: Configure cargo for cross-compilation
         run: |
+          mkdir -p .cargo
           echo '[target.x86_64-win7-windows-msvc]' >> .cargo/config.toml
           echo 'linker = "./xwin-lld-link"' >> .cargo/config.toml
-          echo 'cc = "./xwin-clang-cl"' >> .cargo/config.toml
+          echo 'cc = { path = "./xwin-clang-cl" }' >> .cargo/config.toml
+
 
 
       - name: Pnpm install deps and download resources
