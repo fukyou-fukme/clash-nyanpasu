@@ -78,7 +78,7 @@ jobs:
         run: cargo install xwin
 
       - name: Download Windows SDK using xwin
-        run: xwin splat --output winsdk --accept-license
+        run: yes | xwin splat --output winsdk
 
       - name: Setup custom scripts for clang-cl and lld-link
         run: |
