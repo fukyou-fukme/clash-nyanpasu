@@ -1,34 +1,56 @@
-name: Build Clash Nyanpasu for Windows7
+name: "[Single] Build Windows NSIS"
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+  workflow_dispatch:
+    inputs:
+      portable:
+        description: "Build Portable pkg"
+        required: true
+        type: boolean
+        default: false
+
+      nightly:
+        description: "Nightly prepare"
+        required: true
+        type: boolean
+        default: false
+
+      tag:
+        description: "Release Tag"
+        required: true
+        type: string
+
+  workflow_call:
+    inputs:
+      portable:
+        description: "Build Portable pkg"
+        required: true
+        type: boolean
+        default: false
+
+      nightly:
+        description: "Nightly prepare"
+        required: true
+        type: boolean
+        default: false
+
+      tag:
+        description: "Release Tag"
+        required: true
+        type: string
 
 jobs:
-  build-windows7:
-    name: Build Clash for Windows7
+  build:
     runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: true
 
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: win-cargo-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: |
-            win7-cargo
-          
-      - name: Install Rust-src
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
         run: |
-          rustup toolchain install nightly
+          rustup install stable --profile minimal --no-self-update
+          rustup default stable
           rustup component add rust-src --toolchain nightly-x86_64-pc-windows-msvc
 
       - uses: Swatinem/rust-cache@v2
@@ -47,14 +69,23 @@ jobs:
         name: Install pnpm
         with:
           run_install: false
-          
-      - name: Build ui
+
+      - name: Pnpm install deps and download resources
+        run: |
+          pnpm i
+          pnpm check
+
+      - name: Prepare (Windows NSIS and Portable)
+        run: ${{ inputs.nightly == true && 'pnpm prepare:nightly --nsis' || 'pnpm prepare:release --nsis' }}
+
+      - name: Build UI
         run: |
           pnpm -F ui build
 
       - name: Tauri build
         uses: tauri-apps/tauri-action@v0
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           NIGHTLY: ${{ inputs.nightly == true  && 'true' || 'false' }}
@@ -65,4 +96,16 @@ jobs:
           releaseDraft: false
           prerelease: true
           tauriScript: pnpm tauri
-          args: ${{ inputs.nightly == true && 'pnpm tauri build -- --target x86_64-win7-windows-msvc -Zbuild-std' }}
+          args: ${{ inputs.nightly == true && '-- --target x86_64-win7-windows-msvc -Zbuild-std' }}
+
+      - name: Portable Bundle
+        if: ${{ inputs.portable == true }}
+        run: |
+          pnpm portable
+        env:
+          TAG_NAME: ${{ inputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          NIGHTLY: ${{ inputs.nightly == true  && 'true' || 'false' }}
+          VITE_WIN_PORTABLE: 1
