@@ -1,0 +1,68 @@
+name: Build Clash Nyanpasu for Windows7
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-windows7:
+    name: Build Clash for Windows7
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: win-cargo-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            win7-cargo
+          
+      - name: Install Rust-src
+        run: |
+          rustup toolchain install nightly
+          rustup component add rust-src --toolchain nightly-x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./backend/"
+          prefix-key: "rust-stable"
+          key: windows-latest
+          shared-key: "release"
+
+      - name: Install Node latest
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+          
+      - name: Build ui
+        run: |
+          pnpm -F ui build
+
+      - name: Tauri build
+        uses: tauri-apps/tauri-action@v0
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          NIGHTLY: ${{ inputs.nightly == true  && 'true' || 'false' }}
+        with:
+          tagName: ${{ inputs.tag }}
+          releaseName: "Clash Nyanpasu Dev"
+          releaseBody: "More new features are now supported."
+          releaseDraft: false
+          prerelease: true
+          tauriScript: pnpm tauri
+          args: ${{ inputs.nightly == true && 'pnpm tauri build -- --target x86_64-win7-windows-msvc -Zbuild-std' }}
