@@ -89,6 +89,12 @@ jobs:
           interact
           '
 
+      - name: Download Windows SDK using xwin
+        run: yes | xwin splat --output winsdk
+
+      - name: Create .cargo directory
+        run: mkdir -p .cargo
+
       - name: Setup custom scripts for clang-cl and lld-link
         run: |
           echo '#!/usr/bin/env bash' > xwin-clang-cl
