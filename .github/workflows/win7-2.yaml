@@ -74,19 +74,19 @@ jobs:
         run: |
           sudo apt-get install clang lld
 
-      - name: Install xwin
-        run: cargo install xwin
-
-      - name: Install expect
-        run: sudo apt-get install expect
-
-      - name: Download Windows SDK using xwin and expect
+      - name: Install xwin and download Windows SDK and MSVC tools
         run: |
-          expect -c '
-          spawn xwin splat --output winsdk
-          expect "Do you accept the license" 
-          send "yes\r"
-          interact
+          cargo install xwin
+          xwin --accept-license splat --output winsdk
+          xwin --accept-license tools --output msvc
+
+      - name: Configure environment for MSVC tools
+        run: |
+          echo "Setting up MSVC tools..."
+          export PATH=$PWD/msvc/bin:$PATH
+          export LIB=$PWD/msvc/lib:$LIB
+          export INCLUDE=$PWD/msvc/include:$INCLUDE
+
           '
 
       - name: Create .cargo directory
