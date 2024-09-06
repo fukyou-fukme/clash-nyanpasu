@@ -51,7 +51,7 @@ jobs:
         run: |
           choco install windows-sdk-7.1 --confirm
 
-      - name: Install Rust stable
+      - name: Install Rust nightly
         run: |
           rustup install nightly
           rustup default nightly
