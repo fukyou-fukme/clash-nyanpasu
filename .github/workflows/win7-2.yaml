@@ -77,8 +77,17 @@ jobs:
       - name: Install xwin
         run: cargo install xwin
 
-      - name: Download Windows SDK using xwin
-        run: yes | xwin splat --output winsdk
+      - name: Install expect
+        run: sudo apt-get install expect
+
+      - name: Download Windows SDK using xwin and expect
+        run: |
+          expect -c '
+          spawn xwin splat --output winsdk
+          expect "Do you accept the license" 
+          send "yes\r"
+          interact
+          '
 
       - name: Setup custom scripts for clang-cl and lld-link
         run: |
