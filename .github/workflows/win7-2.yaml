@@ -81,33 +81,6 @@ jobs:
           cargo install xwin
           xwin --accept-license splat --output winsdk
 
-      - name: Create .cargo directory
-        run: New-Item -ItemType Directory -Force .cargo
-
-      - name: Setup custom scripts for clang-cl and lld-link
-        run: |
-          $script = @"
-          #!/usr/bin/env bash
-          set -e
-          XWIN=$PWD/winsdk
-          clang-cl /imsvc "$XWIN/crt/include" /imsvc "$XWIN/sdk/include/ucrt" /imsvc "$XWIN/sdk/include/um" /imsvc "$XWIN/sdk/include/shared" --target="x86_64-pc-windows-msvc" "$@"
-          "@
-          Out-File -FilePath xwin-clang-cl -InputObject $script -Encoding utf8 -Force
-          $script = @"
-          #!/usr/bin/env bash
-          set -e
-          XWIN=$PWD/winsdk
-          lld-link "$@" /libpath:$XWIN/crt/lib/x86_64 /libpath:$XWIN/sdk/lib/um/x86_64 /libpath:$XWIN/sdk/lib/ucrt/x86_64
-          "@
-          Out-File -FilePath xwin-lld-link -InputObject $script -Encoding utf8 -Force
-
-      - name: Configure cargo for cross-compilation
-        run: |
-          New-Item -ItemType Directory -Force .cargo
-          Add-Content -Path .cargo/config.toml -Value "[target.x86_64-win7-windows-msvc]"
-          Add-Content -Path .cargo/config.toml -Value "linker = './xwin-lld-link'"
-          Add-Content -Path .cargo/config.toml -Value "cc = { path = './xwin-clang-cl' }"
-
       - name: Pnpm install deps and download resources
         run: |
           pnpm i
