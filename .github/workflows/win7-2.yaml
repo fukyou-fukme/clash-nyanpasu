@@ -41,7 +41,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -49,15 +49,15 @@ jobs:
 
       - name: Clean environment to avoid tool conflicts
         run: |
-          rm -f /home/runner/.cargo/bin/rust-analyzer
-          rm -f /home/runner/.cargo/bin/rustfmt
-          rm -f /home/runner/.cargo/bin/cargo-fmt
+          Remove-Item -Force $env:USERPROFILE\.cargo\bin\rust-analyzer.exe
+          Remove-Item -Force $env:USERPROFILE\.cargo\bin\rustfmt.exe
+          Remove-Item -Force $env:USERPROFILE\.cargo\bin\cargo-fmt.exe
 
       - name: Install Rust nightly
         run: |
           rustup install nightly
           rustup default nightly
-          rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+          rustup component add rust-src --toolchain nightly-x86_64-pc-windows-msvc
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -76,38 +76,37 @@ jobs:
         with:
           run_install: false
 
-      - name: Install clang and lld
-        run: |
-          sudo apt-get install clang lld
-
       - name: Install xwin and download Windows SDK
         run: |
           cargo install xwin
           xwin --accept-license splat --output winsdk
 
       - name: Create .cargo directory
-        run: mkdir -p .cargo
+        run: New-Item -ItemType Directory -Force .cargo
 
       - name: Setup custom scripts for clang-cl and lld-link
         run: |
-          echo '#!/usr/bin/env bash' > xwin-clang-cl
-          echo 'set -e' >> xwin-clang-cl
-          echo 'XWIN=$PWD/winsdk' >> xwin-clang-cl
-          echo 'clang-cl /imsvc "$XWIN/crt/include" /imsvc "$XWIN/sdk/include/ucrt" /imsvc "$XWIN/sdk/include/um" /imsvc "$XWIN/sdk/include/shared" --target="x86_64-pc-windows-msvc" "$@"' >> xwin-clang-cl
-          chmod +x xwin-clang-cl
-
-          echo '#!/usr/bin/env bash' > xwin-lld-link
-          echo 'set -e' >> xwin-lld-link
-          echo 'XWIN=$PWD/winsdk' >> xwin-lld-link
-          echo 'lld-link "$@" /libpath:$XWIN/crt/lib/x86_64 /libpath:$XWIN/sdk/lib/um/x86_64 /libpath:$XWIN/sdk/lib/ucrt/x86_64' >> xwin-lld-link
-          chmod +x xwin-lld-link
+          $script = @"
+          #!/usr/bin/env bash
+          set -e
+          XWIN=$PWD/winsdk
+          clang-cl /imsvc "$XWIN/crt/include" /imsvc "$XWIN/sdk/include/ucrt" /imsvc "$XWIN/sdk/include/um" /imsvc "$XWIN/sdk/include/shared" --target="x86_64-pc-windows-msvc" "$@"
+          "@
+          Out-File -FilePath xwin-clang-cl -InputObject $script -Encoding utf8 -Force
+          $script = @"
+          #!/usr/bin/env bash
+          set -e
+          XWIN=$PWD/winsdk
+          lld-link "$@" /libpath:$XWIN/crt/lib/x86_64 /libpath:$XWIN/sdk/lib/um/x86_64 /libpath:$XWIN/sdk/lib/ucrt/x86_64
+          "@
+          Out-File -FilePath xwin-lld-link -InputObject $script -Encoding utf8 -Force
 
       - name: Configure cargo for cross-compilation
         run: |
-          mkdir -p .cargo
-          echo '[target.x86_64-win7-windows-msvc]' >> .cargo/config.toml
-          echo 'linker = "./xwin-lld-link"' >> .cargo/config.toml
-          echo 'cc = { path = "./xwin-clang-cl" }' >> .cargo/config.toml
+          New-Item -ItemType Directory -Force .cargo
+          Add-Content -Path .cargo/config.toml -Value "[target.x86_64-win7-windows-msvc]"
+          Add-Content -Path .cargo/config.toml -Value "linker = './xwin-lld-link'"
+          Add-Content -Path .cargo/config.toml -Value "cc = { path = './xwin-clang-cl' }"
 
       - name: Pnpm install deps and download resources
         run: |
