@@ -81,6 +81,16 @@ jobs:
           cargo install xwin
           xwin --accept-license splat --output winsdk
 
+      - name: Install Everything Command Line
+        run: |
+          choco install everything --yes
+
+      - name: Search for windows.lib
+        run: |
+          $env:PATH += ";C:\Program Files\Everything"
+          es.exe -name windows.lib -r C:\ > result.txt
+          type result.txt
+
       - name: Pnpm install deps and download resources
         run: |
           pnpm i
