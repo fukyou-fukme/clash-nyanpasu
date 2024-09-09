@@ -89,9 +89,8 @@ jobs:
       - name: Search for windows.lib
         run: |
           $env:PATH += ";C:\Program Files\Everything"
-          es.exe -name windows.lib -r C:\ > result.txt
-          type result.txt
-
+          es.exe -name windows.lib -r C:\
+          es.exe -name windows.lib -r D:\
       - name: Pnpm install deps and download resources
         run: |
           pnpm i
