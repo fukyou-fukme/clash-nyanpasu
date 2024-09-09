@@ -81,16 +81,25 @@ jobs:
           cargo install xwin
           xwin --accept-license splat --output winsdk
 
-      - name: Install Everything Command Line
-        run: |
-          choco install everything --yes
-          choco install es --yes
+    - name: Set up Everything command line
+      run: |
+        # Download Everything command line tool
+        Invoke-WebRequest -Uri "https://www.voidtools.com/Everything-1.4.1.1009.x64.zip" -OutFile "everything.zip"
+        # Extract the zip file
+        Expand-Archive -Path "everything.zip" -DestinationPath "everything"
 
-      - name: Search for windows.lib
-        run: |
-          $env:PATH += ";C:\Program Files\Everything"
-          es.exe -name windows.lib -r C:\
-          es.exe -name windows.lib -r D:\
+    - name: Add Everything to PATH
+      run: |
+        $env:Path += ";$(pwd)\everything"
+        [System.Environment]::SetEnvironmentVariable('Path', $env:Path, [System.EnvironmentVariableTarget]::Machine)
+
+    - name: Search for windows.lib
+      run: |
+        # Start Everything indexer
+        Start-Process -NoNewWindow -FilePath "everything\es.exe" -ArgumentList "-index"
+        # Run the search
+        & "everything\es.exe" -name "windows.lib" -path "C:\"
+        
       - name: Pnpm install deps and download resources
         run: |
           pnpm i
