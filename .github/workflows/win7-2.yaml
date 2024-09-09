@@ -83,19 +83,16 @@ jobs:
 
       - name: Set up Everything command line
         run: |
-          Invoke-WebRequest -Uri "https://www.voidtools.com/Everything-1.4.1.1009.x64.zip" -OutFile "everything.zip"
-          Expand-Archive -Path "everything.zip" -DestinationPath "everything"
-
-      - name: Add Everything to PATH
-        run: |
-          $env:Path += ";$(pwd)\everything"
-          [System.Environment]::SetEnvironmentVariable('Path', $env:Path, [System.EnvironmentVariableTarget]::Machine)
+          choco install everything --yes
+          choco install es --yes
+          $env:PATH += ";C:\Program Files\Everything"
+          $env:PATH += ";C:\ProgramData\chocolatey\lib\es\tools"
 
       - name: Search for windows.lib
         run: |
-          Start-Process -NoNewWindow -FilePath "everything\es.exe" -ArgumentList "-index"
-          & "everything\es.exe" -name "windows.lib" -path "C:\"
-          & "everything\es.exe" -name "windows.lib" -path "D:\"
+          cmd /c everything
+          es -name windows.lib -path C:\ -path-column
+          es -name windows.lib -path D:\ -path-column
         
       - name: Pnpm install deps and download resources
         run: |
