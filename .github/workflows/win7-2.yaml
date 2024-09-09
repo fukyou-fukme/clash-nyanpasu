@@ -84,6 +84,7 @@ jobs:
       - name: Install Everything Command Line
         run: |
           choco install everything --yes
+          choco install es --yes
 
       - name: Search for windows.lib
         run: |
