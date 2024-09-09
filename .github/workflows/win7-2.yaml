@@ -90,7 +90,7 @@ jobs:
 
       - name: Search for windows.lib
         run: |
-          cmd /c everything
+          cmd /k start everything.exe
           es -name windows.lib -path C:\ -path-column
           es -name windows.lib -path D:\ -path-column
         
